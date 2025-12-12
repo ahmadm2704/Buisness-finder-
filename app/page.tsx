@@ -11,6 +11,9 @@ interface Business {
   name: string;
   address: string;
   phone?: string;
+  email?: string;
+  facebook?: string;
+  instagram?: string;
   rating?: number;
   reviews?: number;
   type: string;

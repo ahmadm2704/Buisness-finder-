@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Process each place
     const businessesWithDetails = results.map((place: any) => {
-      // HERE API contacts structure: [{ phone: [{value: "..."}], www: [{value: "..."}] }]
+      // HERE API contacts structure: [{ phone: [{value: "..."}], www: [{value: "..."}], email: [{value: "..."}] }]
       const contacts = place.contacts || [];
       const contactInfo = contacts[0] || {};
       
@@ -103,15 +103,36 @@ export async function POST(request: NextRequest) {
       const hasWebsite = wwwList.length > 0 && wwwList[0]?.value;
       const website = wwwList[0]?.value || null;
       
-      // Get phone
+      // Get phone numbers (mobile and landline)
       const phoneList = contactInfo.phone || [];
-      const phone = phoneList[0]?.value || null;
+      const mobileList = contactInfo.mobile || [];
+      const phone = phoneList[0]?.value || mobileList[0]?.value || null;
+      
+      // Get email
+      const emailList = contactInfo.email || [];
+      const email = emailList[0]?.value || null;
+      
+      // Get social media from www links (check for facebook, instagram)
+      let facebook = null;
+      let instagram = null;
+      
+      wwwList.forEach((link: any) => {
+        const url = link?.value?.toLowerCase() || '';
+        if (url.includes('facebook.com')) {
+          facebook = link.value;
+        } else if (url.includes('instagram.com')) {
+          instagram = link.value;
+        }
+      });
 
       return {
         id: place.id,
         name: place.title,
         address: place.address?.label || 'N/A',
         phone: phone,
+        email: email,
+        facebook: facebook,
+        instagram: instagram,
         rating: null,
         reviews: null,
         type: place.categories?.[0]?.name || query,
