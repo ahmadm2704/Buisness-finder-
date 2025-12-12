@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
     console.log('Total businesses:', businessesWithDetails.length);
     console.log('Businesses without websites:', businessesWithoutWebsites.length);
 
-    return NextResponse.json(businessesWithDetails);
+    // Return only businesses WITHOUT websites
+    return NextResponse.json(businessesWithoutWebsites);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
