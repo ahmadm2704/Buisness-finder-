@@ -2,48 +2,231 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const HERE_API_KEY = process.env.HERE_API_KEY;
 
-// Country center coordinates for HERE API (lat,lng)
+// Comprehensive country center coordinates for HERE API (lat,lng)
 const COUNTRY_CENTERS: { [key: string]: { lat: number; lng: number } } = {
-  'United States': { lat: 39.8283, lng: -98.5795 },
-  'United Kingdom': { lat: 51.5074, lng: -0.1278 },
-  'Canada': { lat: 56.1304, lng: -106.3468 },
+  'Afghanistan': { lat: 34.5553, lng: 69.2075 },
+  'Albania': { lat: 41.1533, lng: 20.1683 },
+  'Algeria': { lat: 36.7538, lng: 3.0588 },
+  'Andorra': { lat: 42.5063, lng: 1.5218 },
+  'Angola': { lat: -8.8383, lng: 13.2344 },
+  'Antigua and Barbuda': { lat: 17.0578, lng: -61.7957 },
+  'Argentina': { lat: -34.6037, lng: -58.3816 },
+  'Armenia': { lat: 40.1829, lng: 44.5017 },
   'Australia': { lat: -33.8688, lng: 151.2093 },
-  'Germany': { lat: 52.5200, lng: 13.4050 },
+  'Austria': { lat: 48.2082, lng: 16.3738 },
+  'Azerbaijan': { lat: 40.4093, lng: 49.8671 },
+  'Bahamas': { lat: 25.0343, lng: -77.3963 },
+  'Bahrain': { lat: 26.0667, lng: 50.5577 },
+  'Bangladesh': { lat: 23.8103, lng: 90.4125 },
+  'Barbados': { lat: 13.1939, lng: -59.5432 },
+  'Belarus': { lat: 53.9045, lng: 27.5615 },
+  'Belgium': { lat: 50.8503, lng: 4.3517 },
+  'Belize': { lat: 17.2509, lng: -88.7589 },
+  'Benin': { lat: 6.4969, lng: 2.6289 },
+  'Bhutan': { lat: 27.5142, lng: 90.4336 },
+  'Bolivia': { lat: -16.5898, lng: -68.1506 },
+  'Bosnia and Herzegovina': { lat: 43.9159, lng: 17.6791 },
+  'Botswana': { lat: -24.6282, lng: 25.9165 },
+  'Brazil': { lat: -23.5505, lng: -46.6333 },
+  'Brunei': { lat: 4.8830, lng: 114.9988 },
+  'Bulgaria': { lat: 42.6977, lng: 23.3219 },
+  'Burkina Faso': { lat: 12.3714, lng: -1.5197 },
+  'Burundi': { lat: -3.3731, lng: 29.9189 },
+  'Cambodia': { lat: 11.5564, lng: 104.8801 },
+  'Cameroon': { lat: 3.8667, lng: 11.5167 },
+  'Canada': { lat: 56.1304, lng: -106.3468 },
+  'Cape Verde': { lat: 14.9215, lng: -23.6339 },
+  'Central African Republic': { lat: 4.3676, lng: 18.5549 },
+  'Chad': { lat: 12.1348, lng: 15.0557 },
+  'Chile': { lat: -33.8688, lng: -51.2093 },
+  'China': { lat: 39.9042, lng: 116.4074 },
+  'Colombia': { lat: 4.7110, lng: -74.0721 },
+  'Comoros': { lat: -11.6455, lng: 43.3333 },
+  'Congo': { lat: -4.2369, lng: 21.7578 },
+  'Costa Rica': { lat: 9.9281, lng: -84.0907 },
+  'Croatia': { lat: 45.8150, lng: 15.9819 },
+  'Cuba': { lat: 23.1136, lng: -82.3666 },
+  'Cyprus': { lat: 35.1264, lng: 33.4299 },
+  'Czech Republic': { lat: 50.0755, lng: 14.4378 },
+  'Denmark': { lat: 55.6761, lng: 12.5683 },
+  'Djibouti': { lat: 11.5951, lng: 42.5903 },
+  'Dominica': { lat: 15.4150, lng: -61.3710 },
+  'Dominican Republic': { lat: 18.4861, lng: -69.9312 },
+  'East Timor': { lat: -8.5569, lng: 125.5603 },
+  'Ecuador': { lat: -0.2299, lng: -78.5099 },
+  'Egypt': { lat: 30.0444, lng: 31.2357 },
+  'El Salvador': { lat: 13.6929, lng: -89.2182 },
+  'Equatorial Guinea': { lat: 3.8480, lng: 11.5021 },
+  'Eritrea': { lat: 15.1794, lng: 39.7823 },
+  'Estonia': { lat: 59.4370, lng: 24.7536 },
+  'Eswatini': { lat: -26.5225, lng: 31.4659 },
+  'Ethiopia': { lat: 9.0320, lng: 38.7469 },
+  'Fiji': { lat: -17.7134, lng: 178.0650 },
+  'Finland': { lat: 60.1695, lng: 24.9354 },
   'France': { lat: 48.8566, lng: 2.3522 },
+  'Gabon': { lat: 0.4162, lng: 9.4673 },
+  'Gambia': { lat: 13.4549, lng: -15.3105 },
+  'Georgia': { lat: 41.7151, lng: 44.8271 },
+  'Germany': { lat: 52.5200, lng: 13.4050 },
+  'Ghana': { lat: 5.6037, lng: -0.1870 },
+  'Greece': { lat: 37.9838, lng: 23.7275 },
+  'Grenada': { lat: 12.1165, lng: -61.6790 },
+  'Guatemala': { lat: 14.6343, lng: -90.5069 },
+  'Guinea': { lat: 9.6412, lng: -13.5784 },
+  'Guinea-Bissau': { lat: 11.8037, lng: -15.1804 },
+  'Guyana': { lat: 6.8013, lng: -58.1564 },
+  'Haiti': { lat: 18.5944, lng: -72.2963 },
+  'Honduras': { lat: 14.0723, lng: -87.1921 },
+  'Hong Kong': { lat: 22.3193, lng: 114.1694 },
+  'Hungary': { lat: 47.4979, lng: 19.0402 },
+  'Iceland': { lat: 64.1466, lng: -21.9426 },
+  'India': { lat: 28.6139, lng: 77.2090 },
+  'Indonesia': { lat: -6.2088, lng: 106.8456 },
+  'Iran': { lat: 35.6892, lng: 51.3890 },
+  'Iraq': { lat: 33.3157, lng: 44.3615 },
+  'Ireland': { lat: 53.3498, lng: -6.2603 },
+  'Israel': { lat: 31.7683, lng: 35.2137 },
   'Italy': { lat: 41.9028, lng: 12.4964 },
-  'Spain': { lat: 40.4168, lng: -3.7038 },
+  'Ivory Coast': { lat: 6.8275, lng: -5.2893 },
+  'Jamaica': { lat: 18.0179, lng: -77.0369 },
+  'Japan': { lat: 35.6762, lng: 139.6503 },
+  'Jordan': { lat: 31.9454, lng: 35.9284 },
+  'Kazakhstan': { lat: 51.1694, lng: 71.4491 },
+  'Kenya': { lat: -1.2865, lng: 36.8172 },
+  'Kiribati': { lat: 1.3382, lng: 172.9789 },
+  'Kosovo': { lat: 42.6026, lng: 21.1618 },
+  'Kuwait': { lat: 29.3759, lng: 47.9774 },
+  'Kyrgyzstan': { lat: 42.8746, lng: 74.5698 },
+  'Laos': { lat: 17.9757, lng: 102.6331 },
+  'Latvia': { lat: 56.9496, lng: 24.1052 },
+  'Lebanon': { lat: 33.8886, lng: 35.4955 },
+  'Lesotho': { lat: -29.6100, lng: 28.2336 },
+  'Liberia': { lat: 6.3155, lng: -10.8073 },
+  'Libya': { lat: 32.8872, lng: 13.1913 },
+  'Liechtenstein': { lat: 47.1667, lng: 9.5333 },
+  'Lithuania': { lat: 54.6872, lng: 25.2797 },
+  'Luxembourg': { lat: 49.6116, lng: 6.1319 },
+  'Macao': { lat: 22.2987, lng: 113.5439 },
+  'Madagascar': { lat: -19.8863, lng: 47.5389 },
+  'Malawi': { lat: -13.9626, lng: 33.7741 },
+  'Malaysia': { lat: 3.1390, lng: 101.6869 },
+  'Maldives': { lat: 4.1755, lng: 73.5093 },
+  'Mali': { lat: 12.5596, lng: -8.0029 },
+  'Malta': { lat: 35.8989, lng: 14.5146 },
+  'Marshall Islands': { lat: 7.1315, lng: 171.1845 },
+  'Mauritania': { lat: 18.0735, lng: -13.1939 },
+  'Mauritius': { lat: -20.3484, lng: 57.5522 },
+  'Mexico': { lat: 19.4326, lng: -99.1332 },
+  'Micronesia': { lat: 7.4256, lng: 150.5508 },
+  'Moldova': { lat: 47.4116, lng: 28.3699 },
+  'Monaco': { lat: 43.7384, lng: 7.4246 },
+  'Mongolia': { lat: 47.9164, lng: 106.8858 },
+  'Montenegro': { lat: 42.4364, lng: 19.2594 },
+  'Morocco': { lat: 33.9716, lng: -6.8498 },
+  'Mozambique': { lat: -23.8606, lng: 35.3091 },
+  'Myanmar': { lat: 16.8661, lng: 96.1951 },
+  'Namibia': { lat: -22.5597, lng: 17.0832 },
+  'Nauru': { lat: -0.5228, lng: 166.9315 },
+  'Nepal': { lat: 27.7172, lng: 85.3240 },
   'Netherlands': { lat: 52.3676, lng: 4.9041 },
+  'New Zealand': { lat: -36.8509, lng: 174.7645 },
+  'Nicaragua': { lat: 12.1150, lng: -86.2362 },
+  'Niger': { lat: 13.5116, lng: 2.1257 },
+  'Nigeria': { lat: 6.5244, lng: 3.3792 },
+  'North Korea': { lat: 39.0392, lng: 125.7625 },
+  'North Macedonia': { lat: 41.9973, lng: 21.4280 },
+  'Norway': { lat: 59.9139, lng: 10.7522 },
+  'Oman': { lat: 23.6100, lng: 58.5400 },
+  'Pakistan': { lat: 34.0837, lng: 74.2969 },
+  'Palau': { lat: 7.3151, lng: 134.4607 },
+  'Palestine': { lat: 31.9522, lng: 35.2332 },
+  'Panama': { lat: 8.9824, lng: -79.5199 },
+  'Papua New Guinea': { lat: -6.3159, lng: 143.9555 },
+  'Paraguay': { lat: -25.2637, lng: -57.5759 },
+  'Peru': { lat: -12.0464, lng: -77.0428 },
+  'Philippines': { lat: 14.5995, lng: 120.9842 },
+  'Poland': { lat: 52.2297, lng: 21.0122 },
+  'Portugal': { lat: 38.7223, lng: -9.1393 },
+  'Puerto Rico': { lat: 18.2208, lng: -66.5901 },
+  'Qatar': { lat: 25.2854, lng: 51.5310 },
+  'Romania': { lat: 44.4268, lng: 26.1025 },
+  'Russia': { lat: 55.7558, lng: 37.6173 },
+  'Rwanda': { lat: -1.9536, lng: 29.8739 },
+  'Saint Kitts and Nevis': { lat: 17.2574, lng: -62.7830 },
+  'Saint Lucia': { lat: 13.9094, lng: -60.9789 },
+  'Saint Vincent and the Grenadines': { lat: 12.9843, lng: -61.2872 },
+  'Samoa': { lat: -13.7590, lng: -172.1046 },
+  'San Marino': { lat: 43.9424, lng: 12.4578 },
+  'Sao Tome and Principe': { lat: 0.3365, lng: 6.7273 },
+  'Saudi Arabia': { lat: 24.7136, lng: 46.6753 },
+  'Senegal': { lat: 14.7167, lng: -17.4667 },
+  'Serbia': { lat: 44.8176, lng: 20.4624 },
+  'Seychelles': { lat: -4.6796, lng: 55.4920 },
+  'Sierra Leone': { lat: 8.4606, lng: -13.2317 },
+  'Singapore': { lat: 1.3521, lng: 103.8198 },
+  'Slovakia': { lat: 48.1486, lng: 17.1077 },
+  'Slovenia': { lat: 46.0569, lng: 14.5058 },
+  'Solomon Islands': { lat: -9.6348, lng: 160.1562 },
+  'Somalia': { lat: 2.0469, lng: 45.3182 },
+  'South Africa': { lat: -33.9249, lng: 18.4241 },
+  'South Korea': { lat: 37.5665, lng: 126.9780 },
+  'South Sudan': { lat: 4.8517, lng: 31.5921 },
+  'Spain': { lat: 40.4168, lng: -3.7038 },
+  'Sri Lanka': { lat: 6.9271, lng: 80.7789 },
+  'Sudan': { lat: 15.5007, lng: 32.5599 },
+  'Suriname': { lat: 5.8520, lng: -58.0105 },
   'Sweden': { lat: 59.3293, lng: 18.0686 },
   'Switzerland': { lat: 46.9480, lng: 7.4474 },
-  'Austria': { lat: 48.2082, lng: 16.3738 },
-  'Belgium': { lat: 50.8503, lng: 4.3517 },
-  'Denmark': { lat: 55.6761, lng: 12.5683 },
-  'Norway': { lat: 59.9139, lng: 10.7522 },
-  'Ireland': { lat: 53.3498, lng: -6.2603 },
-  'New Zealand': { lat: -36.8509, lng: 174.7645 },
-  'Singapore': { lat: 1.3521, lng: 103.8198 },
-  'Japan': { lat: 35.6762, lng: 139.6503 },
-  'China': { lat: 39.9042, lng: 116.4074 },
-  'India': { lat: 28.6139, lng: 77.2090 },
-  'Brazil': { lat: -23.5505, lng: -46.6333 },
-  'Mexico': { lat: 19.4326, lng: -99.1332 },
-  'South Africa': { lat: -33.9249, lng: 18.4241 },
+  'Syria': { lat: 33.5138, lng: 36.2765 },
+  'Taiwan': { lat: 25.0330, lng: 121.5654 },
+  'Tajikistan': { lat: 38.5598, lng: 68.7738 },
+  'Tanzania': { lat: -6.7924, lng: 39.2083 },
+  'Thailand': { lat: 13.7563, lng: 100.5018 },
+  'Togo': { lat: 6.1256, lng: 1.2317 },
+  'Tonga': { lat: -21.1789, lng: -175.1982 },
+  'Trinidad and Tobago': { lat: 10.6918, lng: -61.2225 },
+  'Tunisia': { lat: 36.8065, lng: 10.1967 },
+  'Turkey': { lat: 41.0082, lng: 28.9784 },
+  'Turkmenistan': { lat: 37.9601, lng: 58.3261 },
+  'Tuvalu': { lat: -8.5211, lng: 179.1982 },
+  'Uganda': { lat: 0.3476, lng: 32.5825 },
+  'Ukraine': { lat: 50.4501, lng: 30.5234 },
+  'United Arab Emirates': { lat: 25.2048, lng: 55.2708 },
+  'United Kingdom': { lat: 51.5074, lng: -0.1278 },
+  'United States': { lat: 39.8283, lng: -98.5795 },
+  'Uruguay': { lat: -34.9011, lng: -56.1645 },
+  'Uzbekistan': { lat: 41.2995, lng: 69.2401 },
+  'Vanuatu': { lat: -17.7404, lng: 168.3045 },
+  'Vatican City': { lat: 41.9029, lng: 12.4534 },
+  'Venezuela': { lat: 10.4806, lng: -66.9036 },
+  'Vietnam': { lat: 21.0285, lng: 105.8542 },
+  'Yemen': { lat: 15.3694, lng: 48.5150 },
+  'Zambia': { lat: -10.3299, lng: 28.2833 },
+  'Zimbabwe': { lat: -17.8252, lng: 31.0335 },
 };
 
-async function getPlaceDetails(placeId: string) {
-  try {
-    const response = await fetch(
-      `https://lookup.search.hereapi.com/v1/lookup?id=${placeId}&apiKey=${HERE_API_KEY}`
-    );
-    
-    if (!response.ok) return {};
-    
-    const data = await response.json();
-    return data || {};
-  } catch (error) {
-    console.error('Error fetching place details:', error);
-    return {};
+function getCountryCoordinates(countryInput: string): { lat: number; lng: number } | null {
+  // Exact match
+  if (COUNTRY_CENTERS[countryInput]) {
+    return COUNTRY_CENTERS[countryInput];
   }
+  
+  // Case-insensitive match
+  const lowerInput = countryInput.toLowerCase();
+  for (const [countryName, coords] of Object.entries(COUNTRY_CENTERS)) {
+    if (countryName.toLowerCase() === lowerInput) {
+      return coords;
+    }
+  }
+  
+  // Partial match (e.g., "USA" matches "United States")
+  for (const [countryName, coords] of Object.entries(COUNTRY_CENTERS)) {
+    if (countryName.toLowerCase().includes(lowerInput) || lowerInput.includes(countryName.toLowerCase())) {
+      return coords;
+    }
+  }
+  
+  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -64,7 +247,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const center = COUNTRY_CENTERS[country] || COUNTRY_CENTERS['United States'];
+    const center = getCountryCoordinates(country);
+    
+    if (!center) {
+      return NextResponse.json(
+        { error: `Country "${country}" not found in database. Try searching for a major country name (e.g., United States, France, Japan, Brazil, etc.)` },
+        { status: 400 }
+      );
+    }
+
     console.log('Searching for:', query, 'in', country);
 
     // Use HERE Discover API to search for businesses
