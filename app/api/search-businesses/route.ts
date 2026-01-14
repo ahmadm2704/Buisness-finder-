@@ -2,7 +2,125 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const HERE_API_KEY = process.env.HERE_API_KEY;
 
-// Comprehensive country center coordinates for HERE API (lat,lng)
+// Major cities by country for comprehensive search
+const COUNTRY_CITIES: { [key: string]: Array<{ name: string; lat: number; lng: number }> } = {
+  'United States': [
+    { name: 'New York', lat: 40.7128, lng: -74.0060 },
+    { name: 'Los Angeles', lat: 34.0522, lng: -118.2437 },
+    { name: 'Chicago', lat: 41.8781, lng: -87.6298 },
+    { name: 'Houston', lat: 29.7604, lng: -95.3698 },
+    { name: 'Phoenix', lat: 33.4484, lng: -112.0742 },
+    { name: 'Philadelphia', lat: 39.9526, lng: -75.1652 },
+    { name: 'San Antonio', lat: 29.4241, lng: -98.4936 },
+    { name: 'San Diego', lat: 32.7157, lng: -117.1611 },
+    { name: 'Dallas', lat: 32.7767, lng: -96.7970 },
+    { name: 'San Jose', lat: 37.3382, lng: -121.8863 },
+  ],
+  'United Kingdom': [
+    { name: 'London', lat: 51.5074, lng: -0.1278 },
+    { name: 'Birmingham', lat: 52.5086, lng: -1.8755 },
+    { name: 'Leeds', lat: 53.8008, lng: -1.5491 },
+    { name: 'Glasgow', lat: 55.8642, lng: -4.2518 },
+    { name: 'Manchester', lat: 53.4808, lng: -2.2426 },
+    { name: 'Edinburgh', lat: 55.9533, lng: -3.1883 },
+  ],
+  'Canada': [
+    { name: 'Toronto', lat: 43.6629, lng: -79.3957 },
+    { name: 'Montreal', lat: 45.5017, lng: -73.5673 },
+    { name: 'Vancouver', lat: 49.2827, lng: -123.1207 },
+    { name: 'Calgary', lat: 51.0447, lng: -114.0719 },
+    { name: 'Ottawa', lat: 45.4215, lng: -75.6972 },
+    { name: 'Edmonton', lat: 53.5461, lng: -113.4938 },
+  ],
+  'Australia': [
+    { name: 'Sydney', lat: -33.8688, lng: 151.2093 },
+    { name: 'Melbourne', lat: -37.8136, lng: 144.9631 },
+    { name: 'Brisbane', lat: -27.4698, lng: 153.0251 },
+    { name: 'Perth', lat: -31.9505, lng: 115.8605 },
+    { name: 'Adelaide', lat: -34.9285, lng: 138.6007 },
+  ],
+  'Germany': [
+    { name: 'Berlin', lat: 52.5200, lng: 13.4050 },
+    { name: 'Munich', lat: 48.1351, lng: 11.5820 },
+    { name: 'Hamburg', lat: 53.5511, lng: 9.9937 },
+    { name: 'Cologne', lat: 50.9364, lng: 6.9528 },
+    { name: 'Frankfurt', lat: 50.1109, lng: 8.6821 },
+  ],
+  'France': [
+    { name: 'Paris', lat: 48.8566, lng: 2.3522 },
+    { name: 'Marseille', lat: 43.2965, lng: 5.3698 },
+    { name: 'Lyon', lat: 45.7640, lng: 4.8357 },
+    { name: 'Toulouse', lat: 43.6047, lng: 1.4442 },
+    { name: 'Nice', lat: 43.7102, lng: 7.2620 },
+  ],
+  'India': [
+    { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+    { name: 'Delhi', lat: 28.6139, lng: 77.2090 },
+    { name: 'Bangalore', lat: 12.9716, lng: 77.5946 },
+    { name: 'Hyderabad', lat: 17.3850, lng: 78.4867 },
+    { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+    { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  ],
+  'China': [
+    { name: 'Beijing', lat: 39.9042, lng: 116.4074 },
+    { name: 'Shanghai', lat: 31.2304, lng: 121.4737 },
+    { name: 'Guangzhou', lat: 23.1291, lng: 113.2644 },
+    { name: 'Shenzhen', lat: 22.5431, lng: 114.0579 },
+    { name: 'Chengdu', lat: 30.5728, lng: 104.0668 },
+  ],
+  'Japan': [
+    { name: 'Tokyo', lat: 35.6762, lng: 139.6503 },
+    { name: 'Osaka', lat: 34.6937, lng: 135.5023 },
+    { name: 'Kyoto', lat: 35.0116, lng: 135.7681 },
+    { name: 'Yokohama', lat: 35.4437, lng: 139.6380 },
+  ],
+  'Brazil': [
+    { name: 'São Paulo', lat: -23.5505, lng: -46.6333 },
+    { name: 'Rio de Janeiro', lat: -22.9068, lng: -43.1729 },
+    { name: 'Brasília', lat: -15.7975, lng: -47.8919 },
+    { name: 'Salvador', lat: -12.9714, lng: -38.5014 },
+    { name: 'Fortaleza', lat: -3.7319, lng: -38.5269 },
+  ],
+  'Mexico': [
+    { name: 'Mexico City', lat: 19.4326, lng: -99.1332 },
+    { name: 'Guadalajara', lat: 20.6596, lng: -103.2494 },
+    { name: 'Monterrey', lat: 25.6866, lng: -100.3161 },
+    { name: 'Cancún', lat: 21.1619, lng: -86.8515 },
+  ],
+  'South Korea': [
+    { name: 'Seoul', lat: 37.5665, lng: 126.9780 },
+    { name: 'Busan', lat: 35.1796, lng: 129.0756 },
+    { name: 'Incheon', lat: 37.4563, lng: 126.7052 },
+    { name: 'Daegu', lat: 35.8714, lng: 128.5937 },
+  ],
+  'Thailand': [
+    { name: 'Bangkok', lat: 13.7563, lng: 100.5018 },
+    { name: 'Chiang Mai', lat: 18.7883, lng: 98.9853 },
+    { name: 'Phuket', lat: 8.0863, lng: 98.4038 },
+  ],
+  'UAE': [
+    { name: 'Dubai', lat: 25.2048, lng: 55.2708 },
+    { name: 'Abu Dhabi', lat: 24.4539, lng: 54.3773 },
+    { name: 'Sharjah', lat: 25.3548, lng: 55.3942 },
+  ],
+  'Kuwait': [
+    { name: 'Kuwait City', lat: 29.3759, lng: 47.9774 },
+    { name: 'Salmiya', lat: 29.3747, lng: 47.7796 },
+    { name: 'Farwaniya', lat: 29.3316, lng: 47.8985 },
+  ],
+  'Saudi Arabia': [
+    { name: 'Riyadh', lat: 24.7136, lng: 46.6753 },
+    { name: 'Jeddah', lat: 21.5433, lng: 39.1727 },
+    { name: 'Dammam', lat: 26.4167, lng: 50.0833 },
+  ],
+  'Egypt': [
+    { name: 'Cairo', lat: 30.0444, lng: 31.2357 },
+    { name: 'Alexandria', lat: 31.2001, lng: 29.9187 },
+    { name: 'Giza', lat: 30.0131, lng: 31.2089 },
+  ],
+};
+
+// Comprehensive country center coordinates for fallback (lat,lng)
 const COUNTRY_CENTERS: { [key: string]: { lat: number; lng: number } } = {
   'Afghanistan': { lat: 34.5553, lng: 69.2075 },
   'Albania': { lat: 41.1533, lng: 20.1683 },
@@ -229,6 +347,56 @@ function getCountryCoordinates(countryInput: string): { lat: number; lng: number
   return null;
 }
 
+function getCities(countryInput: string): Array<{ name: string; lat: number; lng: number }> {
+  // Check if cities are available for this country
+  const countryCities = COUNTRY_CITIES[countryInput];
+  if (countryCities) {
+    return countryCities;
+  }
+  
+  // Case-insensitive match for cities
+  const lowerInput = countryInput.toLowerCase();
+  for (const [countryName, cities] of Object.entries(COUNTRY_CITIES)) {
+    if (countryName.toLowerCase() === lowerInput) {
+      return cities;
+    }
+  }
+  
+  // If no specific cities, use a single center point
+  const center = getCountryCoordinates(countryInput);
+  if (center) {
+    return [{ name: countryInput, lat: center.lat, lng: center.lng }];
+  }
+  
+  return [];
+}
+
+async function searchBusinessesInCity(city: { name: string; lat: number; lng: number }, query: string): Promise<any[]> {
+  const params = new URLSearchParams({
+    q: query,
+    at: `${city.lat},${city.lng}`,
+    limit: '50',
+    apiKey: HERE_API_KEY,
+  });
+
+  try {
+    const response = await fetch(
+      `https://discover.search.hereapi.com/v1/discover?${params.toString()}`
+    );
+
+    if (!response.ok) {
+      console.error(`HERE API error for ${city.name}:`, response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.items || [];
+  } catch (error) {
+    console.error(`Error searching ${city.name}:`, error);
+    return [];
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { country, query } = await request.json();
@@ -247,52 +415,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const center = getCountryCoordinates(country);
+    console.log('Searching for:', query, 'in', country);
+
+    // Get all cities to search from
+    const cities = getCities(country);
     
-    if (!center) {
+    if (cities.length === 0) {
       return NextResponse.json(
         { error: `Country "${country}" not found in database. Try searching for a major country name (e.g., United States, France, Japan, Brazil, etc.)` },
         { status: 400 }
       );
     }
 
-    console.log('Searching for:', query, 'in', country);
+    // Search in all cities and collect results
+    console.log(`Searching in ${cities.length} cities: ${cities.map(c => c.name).join(', ')}`);
+    const allResults: any[] = [];
+    const seenIds = new Set<string>();
 
-    // Use HERE Discover API to search for businesses
-    const params = new URLSearchParams({
-      q: query,
-      at: `${center.lat},${center.lng}`,
-      limit: '50',
-      apiKey: HERE_API_KEY,
-    });
-
-    const response = await fetch(
-      `https://discover.search.hereapi.com/v1/discover?${params.toString()}`
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('HERE API error:', errorData);
-      return NextResponse.json(
-        { error: `HERE API error: ${errorData.error || 'Unknown error'}` },
-        { status: 500 }
-      );
+    for (const city of cities) {
+      console.log(`Searching in ${city.name}...`);
+      const results = await searchBusinessesInCity(city, query);
+      
+      // Add unique results (deduplicate by place ID)
+      for (const result of results) {
+        if (!seenIds.has(result.id)) {
+          seenIds.add(result.id);
+          allResults.push(result);
+        }
+      }
     }
 
-    const data = await response.json();
-    const results = data.items || [];
-    console.log('Found', results.length, 'results from HERE API');
+    console.log(`Found ${allResults.length} total unique businesses across all cities`);
 
     // Process each place
-    const businessesWithDetails = results.map((place: any) => {
+    const businessesWithDetails = allResults.map((place: any) => {
       // HERE API contacts structure: [{ phone: [{value: "..."}], www: [{value: "..."}], email: [{value: "..."}] }]
       const contacts = place.contacts || [];
       const contactInfo = contacts[0] || {};
       
-      // Check for website
+      // Check for website - strict validation
       const wwwList = contactInfo.www || [];
-      const hasWebsite = wwwList.length > 0 && wwwList[0]?.value;
-      const website = wwwList[0]?.value || null;
+      let hasWebsite = false;
+      let website = null;
+      
+      // Check each www entry to see if it's an actual website (not social media)
+      for (const link of wwwList) {
+        const url = link?.value?.toLowerCase() || '';
+        
+        // If it's a legitimate website URL (exclude social media and email)
+        if (url && 
+            !url.includes('facebook.com') && 
+            !url.includes('instagram.com') && 
+            !url.includes('twitter.com') && 
+            !url.includes('linkedin.com') && 
+            !url.includes('youtube.com') && 
+            !url.includes('tiktok.com') && 
+            !url.includes('@') && 
+            url.includes('.')) {
+          hasWebsite = true;
+          website = link.value;
+          break;
+        }
+      }
       
       // Get phone numbers (mobile and landline)
       const phoneList = contactInfo.phone || [];
@@ -333,10 +517,11 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Filter to only businesses without websites
+    // Filter to only businesses WITHOUT websites (strict filtering)
     const businessesWithoutWebsites = businessesWithDetails.filter((b: any) => !b.hasWebsite);
-    console.log('Total businesses:', businessesWithDetails.length);
-    console.log('Businesses without websites:', businessesWithoutWebsites.length);
+    console.log('Total businesses found:', businessesWithDetails.length);
+    console.log('Businesses WITH websites:', businessesWithDetails.filter((b: any) => b.hasWebsite).length);
+    console.log('Businesses WITHOUT websites:', businessesWithoutWebsites.length);
 
     // Return only businesses WITHOUT websites
     return NextResponse.json(businessesWithoutWebsites);
