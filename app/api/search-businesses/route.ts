@@ -1,270 +1,284 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCities } from './locations';
+import { getCities, City } from './locations';
 import { SearchRequestSchema } from './schema';
 
-const HERE_API_KEY = process.env.HERE_API_KEY;
+const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
-// Type definition from HERE API response (partial)
-interface HerePlace {
+// ----------------------------------------------------------------------
+// TYPES (Frontend expects)
+// ----------------------------------------------------------------------
+
+interface BusinessResult {
   id: string;
-  title: string;
-  address?: { label: string };
-  contacts?: Array<{
-    phone?: Array<{ value: string }>;
-    mobile?: Array<{ value: string }>;
-    email?: Array<{ value: string }>;
-    www?: Array<{ value: string }>;
-  }>;
-  categories?: Array<{ name: string }>;
+  name: string;
+  address: string;
+  phone: string | null;
+  email: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  type: string;
+  hasWebsite: boolean;
+  placeId: string;
+  googleMapsLink: string | null;
 }
 
-// ----------------------------------------------------------------------
-// 1. CONSTANTS & CONFIG
-// ----------------------------------------------------------------------
-
-// Aggregators and Platforms that are NOT the business's own website
-const BLACKLISTED_DOMAINS = [
-  'facebook.com', 'instagram.com', 'twitter.com', 'linkedin.com', 'youtube.com',
-  'tiktok.com', 'pinterest.com', 'yelp.com', 'tripadvisor.com', 'yellowpages.com',
-  'ubereats.com', 'doordash.com', 'grubhub.com', 'postmates.com', 'seamless.com',
-  'mapquest.com', 'local.com', 'whitepages.com', 'foursquare.com', 'zomato.com',
-  'opentable.com', 'resy.com', 'wikipedia.org', 'google.com', 'yahoo.com',
-  'bing.com', 'manta.com', 'bbb.org', 'chamberofcommerce.com', 'restaurantji.com',
-  'restaurantguru.com', 'sluurpy.com', 'menupix.com', 'sirved.com', 'allmenus.com'
-];
-
-// Limit verified results to ensure performance (Scraping is slow/heavy)
-const TARGET_VERIFIED_COUNT = 15;
-const MAX_CANDIDATES_TO_CHECK = 40; // Don't check more than this to prevent timeouts
+const TARGET_COUNT = 50;
 
 // ----------------------------------------------------------------------
-// 2. HELPER FUNCTIONS
+// HELPER FUNCTIONS
 // ----------------------------------------------------------------------
 
 /**
- * Checks if a URL domain is one of the blacklisted aggregators
+ * DOUBLE CHECK: Ask Google if this business has a website.
+ * Geoapify is the "Scanner" (finds hidden stuff).
+ * Google is the "Validator" (knows if a website exists).
  */
-function isBlacklisted(url: string): boolean {
+async function verifyWithGoogle(name: string, city: string): Promise<boolean> {
+  if (!GOOGLE_API_KEY) return false; // Can't verify, assume safe? No, safer to return false.
+
   try {
-    const domain = new URL(url).hostname.replace('www.', '').toLowerCase();
-    return BLACKLISTED_DOMAINS.some(d => domain.includes(d));
-  } catch (e) {
-    return false;
-  }
-}
+    const query = `${name} in ${city}`;
+    // 1. Text Search to find the ID
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_API_KEY}`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json();
 
-/**
- * Heuristic: active verification via DuckDuckGo HTML search
- * Returns TRUE if a likely official website is found.
- */
-async function activeVerifyHasWebsite(businessName: string, addressLabel: string): Promise<boolean> {
-  try {
-    // Construct a specific query
-    // e.g., "Joey Roses New York website"
-    const locationPart = addressLabel.split(',')[1]?.trim() || ''; // Extract city/area roughly
-    const query = `${businessName} ${locationPart} website`;
-
-    // Fetch DDG HTML (Lightweight, fewer blocks than Google)
-    const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      // signal: AbortSignal.timeout(3000) // 3s timeout per check
-    });
-
-    if (!response.ok) return false; // If blocked/error, assume safe (allow user to verify) 
-
-    const html = await response.text();
-
-    // Parse links from results
-    // DDG HTML results are usually in <a class="result__a" href="...">
-    const linkRegex = /class="result__a" href="([^"]+)"/g;
-    let match;
-
-    // Check top 3 results only
-    let checkedCount = 0;
-
-    while ((match = linkRegex.exec(html)) !== null && checkedCount < 3) {
-      checkedCount++;
-      const url = match[1];
-
-      // Decode the URL (DDG wraps it sometimes, but HTML version usually direct)
-      // Actually DDG HTML format: href="/l/?kh=-1&udd=..." -> these are redirects.
-      // Wait, linkRegex might capture the redirect URL.
-      // Standard DDG HTML links are usually absolute or redirect.
-      // If it's a redirect, we might verify query params 'udd' contains target?
-      // Let's look for "result__url" text which displays the domain visually.
-      // <a class="result__url" href="..."> example.com </a>
-
-      // Alternative: Regex for ANY http link in the snippet text
-      // Easier: Check the 'result__url' class content if possible, or just parse the redirect param 'udd'.
-
-      // Simplification: Let's regex for likely domain matches in the raw HTML that are NOT in blacklist.
-      // If we see "joeyroses.com" in the HTML near "Joey Roses", it's a website.
-
-      // Better strategy:
-      // Search for the Business Name (sanitized) in domains present in the HTML.
-      const sanitizedName = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (sanitizedName.length < 4) continue; // Too short to match reliably
-
-      // Look for any domain string like "joeyroses.com"
-      // Regex: [a-z0-9-]+\.com (or .net, .org, .io, .co)
-      // We look for the Business Name inside a domain in the HTML.
-      const domainRegex = new RegExp(`([a-z0-9-]*${sanitizedName}[a-z0-9-]*\\.(com|net|org|io|co|nyc|us))`, 'gi');
-      const domainMatch = domainRegex.exec(html);
-
-      if (domainMatch) {
-        const foundDomain = domainMatch[1].toLowerCase();
-        if (!isBlacklisted(`https://${foundDomain}`)) {
-          // Found a domain that contains the business name and isn't blacklisted (like yelp)
-          // console.log(`[Verify] Found likely site for ${businessName}: ${foundDomain}`);
-          return true;
-        }
-      }
+    if (!searchData.results || searchData.results.length === 0) {
+      // Google doesn't even know it. Probably safe (very small business), or name mismatch.
+      // If Google doesn't know it, it definitely doesn't have a high-ranking website.
+      return false;
     }
 
-    return false;
+    const placeId = searchData.results[0].place_id;
+
+    // 2. Details Search to check website field specifically
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website&key=${GOOGLE_API_KEY}`;
+    const detailsRes = await fetch(detailsUrl);
+    const detailsData = await detailsRes.json();
+
+    if (detailsData.result && detailsData.result.website) {
+      console.log(`[Google Verify] DETECTED WEBSITE for ${name}: ${detailsData.result.website}`);
+      return true; // IT HAS A WEBSITE!
+    }
+
+    return false; // No website found by Google
+
   } catch (error) {
-    // console.error(`Verify error for ${businessName}`, error);
-    return false;
+    console.error("Google Verification failed", error);
+    return false; // Fail open (keep it) if API errors
   }
 }
 
-// ----------------------------------------------------------------------
-// 3. MAIN API HANDLER
-// ----------------------------------------------------------------------
+function getCategoriesForQuery(query: string): { categories: string; isGeneric: boolean } {
+  const q = query.toLowerCase();
 
-async function searchBusinessesInCity(
-  city: { name: string; lat: number; lng: number },
+  // Food & Drink (Specific)
+  if (q.includes('restaurant') || q.includes('cafe') || q.includes('bar') || q.includes('pub') || q.includes('bakery') || q.includes('food')) {
+    return { categories: 'catering', isGeneric: false };
+  }
+
+  // Health & Beauty (Verified: commercial.health_and_beauty is valid)
+  if (q.includes('salon') || q.includes('barber') || q.includes('hair') || q.includes('beauty') || q.includes('spa') || q.includes('tattoo')) {
+    return { categories: 'commercial.health_and_beauty,service.beauty', isGeneric: false };
+  }
+
+  // Health (Verified: healthcare is valid)
+  if (q.includes('dentist') || q.includes('doctor') || q.includes('pharmacy') || q.includes('hospital') || q.includes('clinic')) {
+    return { categories: 'healthcare', isGeneric: false };
+  }
+
+  // Trades / Services (Verified: 'service' is valid parent, 'commercial.services' was invalid)
+  if (q.includes('plumber') || q.includes('mechanic') || q.includes('electrician') || q.includes('cleaner') || q.includes('laundry')) {
+    return { categories: 'service', isGeneric: false };
+  }
+
+  // Professional / Office (Verified: 'office' is valid parent)
+  if (q.includes('lawyer') || q.includes('accountant') || q.includes('estate') || q.includes('bank') || q.includes('consultant') || q.includes('insurance')) {
+    return { categories: 'office,service.financial', isGeneric: false };
+  }
+
+  // Accommodation
+  if (q.includes('hotel') || q.includes('motel') || q.includes('hostel')) {
+    return { categories: 'accommodation', isGeneric: false };
+  }
+
+  // Shopping / Retail
+  if (q.includes('store') || q.includes('shop') || q.includes('market') || q.includes('florist')) {
+    return { categories: 'commercial', isGeneric: false };
+  }
+
+  // Activity / Sport
+  if (q.includes('gym') || q.includes('fitness') || q.includes('sports') || q.includes('yoga')) {
+    return { categories: 'sport,activity', isGeneric: false };
+  }
+
+  // DEFAULT: Wide net, but exclude catering to avoid "Pub Bias"
+  return { categories: 'commercial,office,service', isGeneric: true };
+}
+
+/**
+ * Search via Geoapify Places API
+ * Docs: https://apidocs.geoapify.com/docs/places/
+ */
+async function searchGeoapify(
   query: string,
-): Promise<HerePlace[]> {
-  if (!HERE_API_KEY) return [];
+  city: { name: string; lat: number; lng: number }
+): Promise<BusinessResult[]> {
+  if (!GEOAPIFY_API_KEY) return [];
 
-  const params = new URLSearchParams({
-    q: query,
-    at: `${city.lat},${city.lng}`,
-    limit: '50', // Fetch decent pool
-    apiKey: HERE_API_KEY,
-  });
+  // Radius in meters (e.g., 6km)
+  const RADIUS = 6000;
+
+  const { categories, isGeneric } = getCategoriesForQuery(query);
+
+  const limit = 60;
+  const url = `https://api.geoapify.com/v2/places?categories=${categories}&filter=circle:${city.lng},${city.lat},${RADIUS}&limit=${limit}&apiKey=${GEOAPIFY_API_KEY}`;
+
+  console.log(`[DEBUG] Geoapify Search: "${query}" -> [${categories}] in ${city.name}`);
 
   try {
-    const response = await fetch(
-      `https://discover.search.hereapi.com/v1/discover?${params.toString()}`,
-      { cache: 'no-store' }
-    );
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.items || [];
-  } catch (error) {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('[Geoapify Error]', err);
+      return [];
+    }
+
+    const data = await res.json();
+    const features = data.features || [];
+
+    const mappedResults: BusinessResult[] = [];
+
+    for (const f of features) {
+      const props = f.properties;
+      const businessName = props.name || "";
+
+      if (!businessName) continue;
+
+      // 1. FILTER: Validate Relevance (Name check if generic)
+      if (isGeneric || categories.includes('commercial')) {
+        if (query.length > 3 && !businessName.toLowerCase().includes(query.toLowerCase())) {
+          if (query.toLowerCase() !== 'other') {
+            continue;
+          }
+        }
+      }
+
+      // 2. FILTER: NO WEBSITE (Geoapify Check)
+      if (props.website || (props.contact && props.contact.website) || props.url) {
+        continue;
+      }
+
+      // 3. FILTER: EXCLUDE FINANCIAL if irrelevant
+      const catStr = (props.category || "") + (Array.isArray(props.categories) ? props.categories.join(",") : "");
+      if (!query.toLowerCase().includes('bank') &&
+        !query.toLowerCase().includes('financial') &&
+        (catStr.includes('service.financial') || catStr.includes('office.financial'))) {
+        continue;
+      }
+
+      // 4. FILTER: GOOGLE DOUBLE-CHECK (Sync wait to ensure quality)
+      const hasWebsiteOnGoogle = await verifyWithGoogle(businessName, city.name);
+      if (hasWebsiteOnGoogle) {
+        console.log(`[FILTERED] ${businessName} - Google found a website.`);
+        continue;
+      }
+
+      const gMapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${businessName} ${props.address_line2 || props.city || ''}`)}`;
+
+      mappedResults.push({
+        id: props.place_id || Math.random().toString(),
+        name: businessName,
+        address: props.formatted || `${props.address_line1}, ${props.address_line2}`,
+        phone: props.formatted_phone_number || props.phone || null,
+        email: props.email || null,
+        facebook: props.datasource?.raw?.facebook || null,
+        instagram: props.datasource?.raw?.instagram || null,
+        type: query,
+        hasWebsite: false,
+        placeId: props.place_id,
+        googleMapsLink: gMapsLink
+      });
+
+      console.log(`[FOUND] ${businessName} in ${city.name} (Verified)`);
+    }
+
+    return mappedResults;
+
+  } catch (err) {
+    console.error(err);
     return [];
   }
 }
 
+function shuffleCities(array: City[]): City[] {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex != 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
+// ----------------------------------------------------------------------
+// MAIN API LOGIC
+// ----------------------------------------------------------------------
+
 export async function POST(request: NextRequest) {
   try {
-    if (!HERE_API_KEY) return NextResponse.json({ error: 'System error' }, { status: 500 });
+    if (!GEOAPIFY_API_KEY || !GOOGLE_API_KEY) {
+      return NextResponse.json({ error: 'Server configuration error: valid API KEYS missing.' }, { status: 500 });
+    }
 
     const body = await request.json();
     const result = SearchRequestSchema.safeParse(body);
     if (!result.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
 
     const { country, query } = result.data;
-    const cities = getCities(country);
-    if (cities.length === 0) return NextResponse.json({ error: 'Country not found' }, { status: 404 });
+    const allCities = getCities(country);
 
-    // 1. Initial Fetch
-    // We only take the first chunk of cities to prevent slow response times now that we verify
-    const SEARCH_LIMIT = 5; // Search first 5 cities max for candidates
-    const activeCities = cities.slice(0, SEARCH_LIMIT);
+    if (allCities.length === 0) return NextResponse.json({ error: 'Country not found' }, { status: 404 });
 
-    // console.log(`Searching in ${activeCities.length} cities...`);
-    const promises = activeCities.map(c => searchBusinessesInCity(c, query));
-    const resultsArrays = await Promise.all(promises);
+    const randomizedCities = shuffleCities([...allCities]);
 
-    const candidates: HerePlace[] = [];
-    const seen = new Set<string>();
+    const finalResults: BusinessResult[] = [];
+    let citiesScanned = 0;
 
-    resultsArrays.flat().forEach(place => {
-      if (!seen.has(place.id)) {
-        seen.add(place.id);
-        candidates.push(place);
+    const MAX_EXECUTION_TIME_MS = 55000;
+    const startTime = Date.now();
+
+    console.log(`[DEBUG] STARTING HYBRID SCAN. Goal: ${TARGET_COUNT}. Query: ${query}`);
+
+    while (finalResults.length < TARGET_COUNT && citiesScanned < randomizedCities.length) {
+
+      if (Date.now() - startTime > MAX_EXECUTION_TIME_MS) {
+        console.log('[DEBUG] TIMEOUT. Returning results.');
+        break;
       }
-    });
 
-    // 2. Initial Filter (Fast) - Filter out obvious ones
-    const initialPool = candidates.filter(place => {
-      const contactsList = place.contacts || [];
-      let hasWeb = false;
+      const currentCity = randomizedCities[citiesScanned];
+      citiesScanned++;
 
-      // Basic check
-      for (const contact of contactsList) {
-        if (contact.www) {
-          // Check if any www link is NOT blacklisted
-          for (const link of contact.www) {
-            if (link.value && !isBlacklisted(link.value)) {
-              hasWeb = true;
-              break;
-            }
+      // Search & Verify happens inside searchGeoapify now
+      const results = await searchGeoapify(query, currentCity);
+
+      for (const res of results) {
+        if (finalResults.length < TARGET_COUNT) {
+          if (!finalResults.find(r => r.name === res.name && r.address === res.address)) {
+            finalResults.push(res);
           }
         }
-        if (contact.email) {
-          // Check domain
-          for (const email of contact.email) {
-            const domain = email.value.split('@')[1];
-            if (domain && !['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'].some(d => domain.includes(d))) {
-              hasWeb = true; // Likely has website
-            }
-          }
-        }
-      }
-      return !hasWeb;
-    });
-
-    // 3. Active Verification (Slow/Premium)
-    // console.log(`Verifying ${initialPool.length} candidates...`);
-    const verifiedResults: any[] = [];
-
-    // Verify until we have TARGET_VERIFIED_COUNT
-    for (const place of initialPool) {
-      if (verifiedResults.length >= TARGET_VERIFIED_COUNT) break;
-
-      // Active Search Check
-      const hasHiddenWebsite = await activeVerifyHasWebsite(place.title, place.address?.label || '');
-
-      if (!hasHiddenWebsite) {
-        // Prepare final object
-        const contacts = place.contacts?.[0] || {};
-        const phone = contacts.phone?.[0]?.value || contacts.mobile?.[0]?.value || null;
-        const email = contacts.email?.[0]?.value || null;
-
-        // Extract FB/Insta if present
-        let facebook = null;
-        let instagram = null;
-        (contacts.www || []).forEach((l: any) => {
-          if (l.value?.includes('facebook')) facebook = l.value;
-          if (l.value?.includes('instagram')) instagram = l.value;
-        });
-
-        verifiedResults.push({
-          id: place.id,
-          name: place.title,
-          address: place.address?.label || 'N/A',
-          phone,
-          email,
-          facebook,
-          instagram,
-          type: place.categories?.[0]?.name || query,
-          hasWebsite: false,
-          placeId: place.id,
-        });
       }
     }
 
-    return NextResponse.json(verifiedResults);
+    return NextResponse.json(finalResults);
 
   } catch (error) {
-    console.error('API Error:', error);
+    console.error(error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

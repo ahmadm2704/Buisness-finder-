@@ -1,0 +1,104 @@
+[
+  {
+    "query": "Halifax Middlesbrough",
+    "properties": {
+      "datasource": {
+        "sourcename": "openstreetmap",
+        "attribution": "© OpenStreetMap contributors",
+        "license": "Open Database License",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "name": "Halifax",
+      "country": "United Kingdom",
+      "country_code": "gb",
+      "state": "England",
+      "county": "Middlesbrough",
+      "state_district": "Tees Valley",
+      "city": "Middlesbrough",
+      "postcode": "TS1 1RY",
+      "suburb": "Middlehaven",
+      "street": "Wilson Street",
+      "iso3166_2": "GB-ENG",
+      "iso3166_2_sublevel": "GB-MDB",
+      "lon": -1.2361583671754235,
+      "lat": 54.57812455,
+      "state_code": "ENG",
+      "result_type": "amenity",
+      "county_code": "MDB",
+      "formatted": "Halifax, Wilson Street, Middlesbrough, TS1 1RY, United Kingdom",
+      "address_line1": "Halifax",
+      "address_line2": "Wilson Street, Middlesbrough, TS1 1RY, United Kingdom",
+      "category": "service.financial.bank",
+      "timezone": {
+        "name": "Europe/London",
+        "offset_STD": "+00:00",
+        "offset_STD_seconds": 0,
+        "offset_DST": "+01:00",
+        "offset_DST_seconds": 3600,
+        "abbreviation_STD": "GMT",
+        "abbreviation_DST": "BST"
+      },
+      "plus_code": "9C6WHQH7+6G",
+      "plus_code_short": "H7+6G Middlesbrough, United Kingdom",
+      "rank": {
+        "importance": 0.00000999999999995449,
+        "popularity": 6.907967335475525,
+        "confidence": 1,
+        "confidence_city_level": 1,
+        "match_type": "full_match"
+      },
+      "place_id": "518e1ffbfe4dc7f3bf59e2a139fcff494b40f00102f901851b1d3a00000000c0020192030748616c69666178"
+    }
+  },
+  {
+    "query": "Ramsdens Middlesbrough",
+    "properties": {
+      "datasource": {
+        "sourcename": "openstreetmap",
+        "attribution": "© OpenStreetMap contributors",
+        "license": "Open Database License",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "name": "Ramsdens",
+      "country": "United Kingdom",
+      "country_code": "gb",
+      "state": "England",
+      "county": "Middlesbrough",
+      "state_district": "Tees Valley",
+      "city": "Middlesbrough",
+      "postcode": "TS8 0TL",
+      "suburb": "Coulby Newham",
+      "retail": "Coulby Newham District Centre",
+      "street": "Cropton Way",
+      "iso3166_2": "GB-ENG",
+      "iso3166_2_sublevel": "GB-MDB",
+      "lon": -1.216017,
+      "lat": 54.5243685,
+      "state_code": "ENG",
+      "result_type": "amenity",
+      "county_code": "MDB",
+      "formatted": "Ramsdens, Cropton Way, Middlesbrough, TS8 0TL, United Kingdom",
+      "address_line1": "Ramsdens",
+      "address_line2": "Cropton Way, Middlesbrough, TS8 0TL, United Kingdom",
+      "category": "service.financial.bureau_de_change",
+      "timezone": {
+        "name": "Europe/London",
+        "offset_STD": "+00:00",
+        "offset_STD_seconds": 0,
+        "offset_DST": "+01:00",
+        "offset_DST_seconds": 3600,
+        "abbreviation_STD": "GMT",
+        "abbreviation_DST": "BST"
+      },
+      "plus_code": "9C6WGQFM+PH",
+      "plus_code_short": "GQFM+PH Middlesbrough, United Kingdom",
+      "rank": {
+        "importance": 0.00000999999999995449,
+        "popularity": 4.919080370471527,
+        "confidence": 0.5,
+        "match_type": "full_match"
+      },
+      "place_id": "519c14e63dce74f3bf59bb46cb811e434b40f00103f901ea51797c02000000c0020192030852616d7364656e73e203246f70656e7374726565746d61703a76656e75653a6e6f64652f3130363738323630323032"
+    }
+  }
+]

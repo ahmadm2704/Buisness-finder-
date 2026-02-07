@@ -80,14 +80,21 @@ export default function Home() {
       <SearchForm onSearch={handleSearch} />
 
       {/* Error Message */}
+      {/* Error Message */}
       {error && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-8 p-6 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-200 text-center max-w-2xl mx-auto backdrop-blur-sm"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 p-6 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-200 text-center max-w-2xl mx-auto backdrop-blur-md shadow-lg"
         >
-          <p className="font-semibold">⚠️ Scan Failed</p>
-          <p className="text-sm opacity-80 mt-1">{error}</p>
+          <div className="text-3xl mb-2">⚠️</div>
+          <p className="font-bold text-lg text-white mb-2">Scan Failed</p>
+          <p className="opacity-90 font-mono text-sm bg-black/30 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap text-left mx-auto max-w-lg">
+            {error}
+          </p>
+          <p className="mt-4 text-sm text-red-300">
+            Common fix: Check if <b>"Places API (New)"</b> is enabled in Google Cloud Console.
+          </p>
         </motion.div>
       )}
 
