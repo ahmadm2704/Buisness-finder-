@@ -134,9 +134,17 @@ async function searchGeoapify(
   const { categories, isGeneric } = getCategoriesForQuery(query);
 
   const limit = 60;
-  const url = `https://api.geoapify.com/v2/places?categories=${categories}&filter=circle:${city.lng},${city.lat},${RADIUS}&limit=${limit}&apiKey=${GEOAPIFY_API_KEY}`;
+  // STRICT MODE: Use `text` parameter to ensure result matches the query.
+  // This drastically reduces false positives (e.g. "Plumber" won't return "Locksmith").
+  // Exception: If query is "Other", we don't use strict text matching.
+  let textParam = "";
+  if (query.toLowerCase() !== "other") {
+    textParam = `&text=${encodeURIComponent(query)}`;
+  }
 
-  console.log(`[DEBUG] Geoapify Search: "${query}" -> [${categories}] in ${city.name}`);
+  const url = `https://api.geoapify.com/v2/places?categories=${categories}${textParam}&filter=circle:${city.lng},${city.lat},${RADIUS}&limit=${limit}&apiKey=${GEOAPIFY_API_KEY}`;
+
+  console.log(`[DEBUG] Geoapify Search: "${query}" -> [${categories}] + text="${query}" in ${city.name}`);
 
   try {
     const res = await fetch(url);
@@ -157,14 +165,10 @@ async function searchGeoapify(
 
       if (!businessName) continue;
 
-      // 1. FILTER: Validate Relevance (Name check if generic)
-      if (isGeneric || categories.includes('commercial')) {
-        if (query.length > 3 && !businessName.toLowerCase().includes(query.toLowerCase())) {
-          if (query.toLowerCase() !== 'other') {
-            continue;
-          }
-        }
-      }
+      // 1. FILTER: Validate Relevance
+      // WE REMOVED THE MANUAL NAME CHECK LOOP because Geoapify `text` param does it better.
+      // However, we still check if "Other" results are completely random?
+      // No, generic 'other' uses broad categories but no text param.
 
       // 2. FILTER: NO WEBSITE (Geoapify Check)
       if (props.website || (props.contact && props.contact.website) || props.url) {
@@ -175,6 +179,7 @@ async function searchGeoapify(
       const catStr = (props.category || "") + (Array.isArray(props.categories) ? props.categories.join(",") : "");
       if (!query.toLowerCase().includes('bank') &&
         !query.toLowerCase().includes('financial') &&
+        !query.toLowerCase().includes('atm') &&
         (catStr.includes('service.financial') || catStr.includes('office.financial'))) {
         continue;
       }

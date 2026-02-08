@@ -125,6 +125,16 @@ export const COUNTRY_CITIES: Record<string, City[]> = {
     { name: 'Toulouse', lat: 43.6047, lng: 1.4442 },
     { name: 'Nice', lat: 43.7102, lng: 7.2620 },
   ],
+  'Pakistan': [
+    { name: 'Karachi', lat: 24.8607, lng: 67.0011 },
+    { name: 'Lahore', lat: 31.5204, lng: 74.3587 },
+    { name: 'Islamabad', lat: 33.6844, lng: 73.0479 },
+    { name: 'Rawalpindi', lat: 33.6007, lng: 73.0679 },
+    { name: 'Faisalabad', lat: 31.4504, lng: 73.1350 },
+    { name: 'Multan', lat: 30.1575, lng: 71.5249 },
+    { name: 'Peshawar', lat: 34.0151, lng: 71.5249 },
+    { name: 'Quetta', lat: 30.1798, lng: 66.9750 },
+  ],
 };
 
 // Comprehensive country center coordinates for fallback (lat,lng)
@@ -132,7 +142,11 @@ export const COUNTRY_CITIES: Record<string, City[]> = {
 export const COUNTRY_CENTERS: Record<string, { lat: number; lng: number }> = {
   'United States': { lat: 39.8283, lng: -98.5795 },
   'United Kingdom': { lat: 51.5074, lng: -0.1278 },
-  // ... (Full list omitted for brevity here, but included in file)
+  'Canada': { lat: 56.1304, lng: -106.3468 },
+  'Australia': { lat: -25.2744, lng: 133.7751 },
+  'Germany': { lat: 51.1657, lng: 10.4515 },
+  'France': { lat: 46.2276, lng: 2.2137 },
+  'Pakistan': { lat: 30.3753, lng: 69.3451 },
 };
 
 // ... (Functions getCountryCoordinates and getCities remain the same) 
